@@ -1,0 +1,114 @@
+{
+  "landingPage": {
+    "sections": {
+      "features": {
+        "sectionTitle": "Why Choose Us?",
+        "sectionText": "Discover the benefits of our platform",
+        "cards": [
+          {
+            "icon": "fas fa-users fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Connect with Experts",
+            "cardText": "Find skilled professionals from various fields to help with your projects."
+          },
+          {
+            "icon": "fas fa-search fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Easy Discovery",
+            "cardText": "Use our advanced filters to find the perfect match for your needs."
+          },
+          {
+            "icon": "fas fa-shield-alt fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Secure Platform",
+            "cardText": "Your data is protected with industry-standard security measures."
+          }
+        ]
+      },
+      "categories": {
+        "sectionTitle": "Explore by Category",
+        "sectionText": "Find skills in the category that suits your needs",
+        "cards": [
+          {
+            "icon": "fas fa-code fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Development",
+            "cardText": "245 skills"
+          },
+          {
+            "icon": "fas fa-paint-brush fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Design",
+            "cardText": "189 skills"
+          },
+          {
+            "icon": "fas fa-chart-line fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Marketing",
+            "cardText": "156 skills"
+          },
+          {
+            "icon": "fas fa-language fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Languages",
+            "cardText": "134 skills"
+          },
+          {
+            "icon": "fas fa-camera fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Photography",
+            "cardText": "98 skills"
+          },
+          {
+            "icon": "fas fa-music fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Music",
+            "cardText": "87 skills"
+          },
+          {
+            "icon": "fas fa-utensils fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Cooking",
+            "cardText": "76 skills"
+          },
+          {
+            "icon": "fas fa-pen fa-lg",
+            "icon_color": "#042C76",
+            "cardTitle": "Writing",
+            "cardText": "112 skills"
+          }
+        ]
+      },
+      "skills": {
+        "sectionTitle": "Popular Skills",
+        "sectionText": "Discover the most sought-after skills on our platform",
+        "cards": [
+          {
+            "icon": "fas fa-laptop-code fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Education",
+            "cardText": ""
+          },
+          {
+            "icon": "fab fa-python fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Python Programming",
+            "cardText": ""
+          },
+          {
+            "icon": "fas fa-camera fa-2x",
+            "icon_color": "#042C76",
+            "cardTitle": "Photography",
+            "cardText": ""
+          }
+        ]
+      }
+    },
+    "stats": {
+      "activeUsers": "1000+",
+      "skillsAvailable": "500+",
+      "categories": "50+",
+      "support": "24/7"
+    }
+  }
+}
