@@ -1,112 +1,382 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import API_BASE from '../../shared/utils/apiBase';
 
-export default function TabTwoScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
+interface User {
+  id: string;
+  name: string;
+  emailId: string;
+  category?: string;
+  summary?: string;
+  photoPresent?: boolean;
+}
+
+export default function BrowseScreen() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const categories = [
+    'all',
+    'Software Engineer',
+    'Frontend Engineer',
+    'Backend Engineer',
+    'Data Analyst',
+    'UI/UX Designer',
+    'Project Manager',
+  ];
+
+  useEffect(() => {
+    loadUsers();
+  }, [user]);
+
+  const loadUsers = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE}/api/users/public`, {
+        headers: {
+          'x-current-user': JSON.stringify(user),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      } else {
+        Alert.alert('Error', 'Failed to load users');
+      }
+    } catch (error) {
+      console.error('Load users error:', error);
+      Alert.alert('Error', 'Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = !searchQuery ||
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.summary?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategory === 'all' ||
+      user.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const renderUserCard = ({ item }: { item: User }) => (
+    <TouchableOpacity
+      style={styles.userCard}
+      onPress={() => {
+        Alert.alert('User Profile', `View profile of ${item.name}`);
+      }}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.name?.[0]?.toUpperCase() || 'U'}
+          </Text>
+        </View>
+        <View style={styles.cardInfo}>
+          <Text style={styles.userName}>{item.name}</Text>
+          <Text style={styles.userCategory}>{item.category || 'No category'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.userSummary} numberOfLines={2}>
+          {item.summary || 'No description available'}
+        </Text>
+      </View>
+
+      <View style={styles.cardFooter}>
+        <TouchableOpacity
+          style={styles.contactButton}
+          onPress={() => {
+            router.push({
+              pathname: '/message-compose',
+              params: {
+                receiverId: item.id,
+                receiverName: item.name,
+              },
+            });
+          }}
+        >
+          <Text style={styles.contactButtonText}>Contact</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (!user) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.centerContent}>
+          <ThemedText type="title" style={styles.title}>
+            Browse Skills
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Discover talented professionals in your area
+          </ThemedText>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={() => router.push('/login')}
+          >
+            <Text style={styles.signInButtonText}>Sign In to Browse</Text>
+          </TouchableOpacity>
+        </View>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.title}>
+          Browse Skills
         </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
+        <ThemedText style={styles.subtitle}>
+          Find the perfect professional for your project
         </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
+      </View>
+
+      {/* Search and Filter */}
+      <View style={styles.filters}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name, skill, or description..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+
+        <View style={styles.categoryFilters}>
+          {categories.slice(0, 4).map(category => (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.categoryButton,
+                selectedCategory === category && styles.categoryButtonActive,
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text style={[
+                styles.categoryButtonText,
+                selectedCategory === category && styles.categoryButtonTextActive,
+              ]}>
+                {category === 'all' ? 'All' : category.split(' ')[0]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* User List */}
+      {loading ? (
+        <View style={styles.centerContent}>
+          <Text>Loading professionals...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredUsers}
+          keyExtractor={(item) => item.id}
+          renderItem={renderUserCard}
+          style={styles.userList}
+          contentContainerStyle={styles.userListContent}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No professionals found</Text>
+              <Text style={styles.emptySubtext}>
+                Try adjusting your search or filters
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
-  titleContainer: {
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6c757d',
+  },
+  signInButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  header: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  filters: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+    marginBottom: 12,
+  },
+  categoryFilters: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+  },
+  categoryButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#e9ecef',
+    marginHorizontal: 2,
+    alignItems: 'center',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#007bff',
+  },
+  categoryButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#495057',
+  },
+  categoryButtonTextActive: {
+    color: '#ffffff',
+  },
+  userList: {
+    flex: 1,
+  },
+  userListContent: {
+    padding: 16,
+  },
+  userCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#007bff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007bff',
+    marginBottom: 2,
+  },
+  userCategory: {
+    fontSize: 14,
+    color: '#6c757d',
+  },
+  cardBody: {
+    marginBottom: 12,
+  },
+  userSummary: {
+    fontSize: 14,
+    color: '#495057',
+    lineHeight: 20,
+  },
+  cardFooter: {
+    alignItems: 'flex-end',
+  },
+  contactButton: {
+    backgroundColor: '#28a745',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  contactButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6c757d',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
   },
 });
