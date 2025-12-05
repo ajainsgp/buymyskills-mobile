@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +21,13 @@ export default function HomeScreen() {
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.hero}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/images/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
             <ThemedText type="title" style={styles.heroTitle}>
               Welcome to BuyMySkills
             </ThemedText>
@@ -361,5 +369,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6c757d',
     textAlign: 'center',
+  },
+  logoContainer: {
+    marginBottom: 16,
+  },
+  logo: {
+    width: 80,
+    height: 80,
   },
 });

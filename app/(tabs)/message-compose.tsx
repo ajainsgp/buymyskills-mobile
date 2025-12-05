@@ -1,32 +1,73 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import API_BASE from '../../shared/utils/apiBase';
 
-export default function MessageComposeScreen() {
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(false);
+interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
+export default function MessageChatScreen() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const router = useRouter();
-  const { receiverId, receiverName } = useLocalSearchParams();
+  const { receiverId, receiverName, from } = useLocalSearchParams();
   const { user } = useAuth();
 
+  useEffect(() => {
+    if (user && receiverId) {
+      loadMessages();
+    }
+  }, [user, receiverId]);
+
+  const loadMessages = async () => {
+    if (!user || !receiverId) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE}/api/messages?contactId=${receiverId}`, {
+        headers: {
+          'x-current-user': JSON.stringify(user),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+      } else {
+        Alert.alert('Error', 'Failed to load messages');
+      }
+    } catch (error) {
+      console.error('Load messages error:', error);
+      Alert.alert('Error', 'Failed to load messages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!subject.trim() || !content.trim()) {
-      Alert.alert('Error', 'Please enter both subject and message content');
+    if (!newMessage.trim()) {
+      Alert.alert('Error', 'Please enter a message');
       return;
     }
 
@@ -35,7 +76,7 @@ export default function MessageComposeScreen() {
       return;
     }
 
-    setLoading(true);
+    setSending(true);
     try {
       const response = await fetch(`${API_BASE}/api/messages`, {
         method: 'POST',
@@ -45,18 +86,14 @@ export default function MessageComposeScreen() {
         },
         body: JSON.stringify({
           receiverId: receiverId,
-          subject: subject.trim(),
-          content: content.trim(),
+          content: newMessage.trim(),
         }),
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'Message sent successfully!', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
+        const newMsg = await response.json();
+        setMessages(prev => [...prev, newMsg.message]);
+        setNewMessage('');
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to send message');
@@ -65,7 +102,7 @@ export default function MessageComposeScreen() {
       console.error('Send message error:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
@@ -81,7 +118,7 @@ export default function MessageComposeScreen() {
           </ThemedText>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/(tabs)/messages')}
           >
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
@@ -90,69 +127,74 @@ export default function MessageComposeScreen() {
     );
   }
 
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isOwnMessage = item.senderId === user?.id;
+    return (
+      <View style={[styles.messageContainer, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
+        <Text style={[styles.messageText, isOwnMessage ? styles.ownMessageText : styles.otherMessageText]}>
+          {item.content}
+        </Text>
+        <Text style={[styles.messageTime, isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime]}>
+          {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Send Message
-          </ThemedText>
-          <ThemedText style={styles.recipient}>
-            To: {receiverName}
-          </ThemedText>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => {
+          if (from === 'explore') {
+            router.push('/(tabs)/explore');
+          } else {
+            router.push('/(tabs)/messages');
+          }
+        }} style={styles.backButton}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <ThemedText type="title" style={styles.title}>
+          {receiverName}
+        </ThemedText>
+      </View>
+
+      {loading ? (
+        <View style={styles.centerContent}>
+          <Text>Loading messages...</Text>
         </View>
+      ) : (
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContainer}
+          inverted={false}
+        />
+      )}
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Subject *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Message subject"
-              value={subject}
-              onChangeText={setSubject}
-              maxLength={100}
-            />
-            <Text style={styles.charCount}>{subject.length}/100</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Message *</Text>
-            <TextInput
-              style={[styles.input, styles.messageInput]}
-              placeholder="Type your message here..."
-              value={content}
-              onChangeText={setContent}
-              multiline
-              textAlignVertical="top"
-              maxLength={1000}
-            />
-            <Text style={styles.charCount}>{content.length}/1000</Text>
-          </View>
-
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => router.back()}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sendButton, loading && styles.buttonDisabled]}
-              onPress={handleSendMessage}
-              disabled={loading || !subject.trim() || !content.trim()}
-            >
-              <Text style={styles.sendButtonText}>
-                {loading ? 'Sending...' : 'Send Message'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.messageInput}
+          placeholder="Type a message..."
+          value={newMessage}
+          onChangeText={setNewMessage}
+          multiline
+          maxLength={1000}
+        />
+        <TouchableOpacity
+          style={[styles.sendButton, (sending || !newMessage.trim()) && styles.buttonDisabled]}
+          onPress={handleSendMessage}
+          disabled={sending || !newMessage.trim()}
+        >
+          <Text style={styles.sendButtonText}>
+            {sending ? '...' : 'Send'}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -162,9 +204,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  scrollContainer: {
-    flex: 1,
-  },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
@@ -172,21 +211,26 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 20,
     paddingBottom: 10,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#dee2e6',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  backButton: {
+    marginRight: 16,
+    padding: 8,
   },
-  recipient: {
-    fontSize: 16,
+  backButtonText: {
+    fontSize: 24,
     color: '#007bff',
-    fontWeight: '500',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007bff',
   },
   errorTitle: {
     fontSize: 20,
@@ -200,72 +244,74 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  backButton: {
-    backgroundColor: '#6c757d',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  messagesList: {
+    flex: 1,
   },
-  backButtonText: {
+  messagesContainer: {
+    padding: 16,
+  },
+  messageContainer: {
+    marginBottom: 12,
+    maxWidth: '80%',
+  },
+  ownMessage: {
+    alignSelf: 'flex-end',
+  },
+  otherMessage: {
+    alignSelf: 'flex-start',
+  },
+  messageText: {
+    padding: 12,
+    borderRadius: 16,
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  ownMessageText: {
+    backgroundColor: '#007bff',
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
   },
-  form: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+  otherMessageText: {
+    backgroundColor: '#ffffff',
     color: '#495057',
-  },
-  input: {
     borderWidth: 1,
     borderColor: '#dee2e6',
-    borderRadius: 8,
+  },
+  messageTime: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  ownMessageTime: {
+    color: '#6c757d',
+  },
+  otherMessageTime: {
+    color: '#6c757d',
+  },
+  inputContainer: {
+    flexDirection: 'row',
     padding: 16,
-    fontSize: 16,
     backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#dee2e6',
   },
   messageInput: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    fontSize: 12,
-    color: '#6c757d',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  cancelButton: {
     flex: 1,
-    backgroundColor: '#6c757d',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  cancelButtonText: {
-    color: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
-    fontWeight: '600',
+    backgroundColor: '#f8f9fa',
+    marginRight: 12,
+    maxHeight: 100,
   },
   sendButton: {
-    flex: 2,
     backgroundColor: '#007bff',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginLeft: 8,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    justifyContent: 'center',
   },
   buttonDisabled: {
     backgroundColor: '#6c757d',

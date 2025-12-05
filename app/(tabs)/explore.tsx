@@ -119,6 +119,7 @@ export default function BrowseScreen() {
               params: {
                 receiverId: item.id,
                 receiverName: item.name,
+                from: 'explore',
               },
             });
           }}
