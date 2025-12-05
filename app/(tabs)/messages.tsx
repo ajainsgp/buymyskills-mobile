@@ -16,6 +16,7 @@ import API_BASE from '../../shared/utils/apiBase';
 interface Conversation {
   contactId: string;
   contactName: string;
+  lastMessage?: string;
   lastMessageTime: string;
   unreadCount: number;
 }
@@ -84,6 +85,7 @@ export default function MessagesScreen() {
           params: {
             receiverId: item.contactId,
             receiverName: item.contactName,
+            from: 'messages',
           },
         });
       }}
@@ -97,11 +99,11 @@ export default function MessagesScreen() {
         </View>
         <View style={styles.conversationFooter}>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            Tap to start chatting...
+            {item.lastMessage || 'Tap to start chatting...'}
           </Text>
           {item.unreadCount > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unreadCount}</Text>
+              <Text style={styles.unreadText}>New</Text>
             </View>
           )}
         </View>

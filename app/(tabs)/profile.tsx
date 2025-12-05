@@ -4,15 +4,19 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  FlatList,
+  Modal,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import countriesData from '../../shared/data/countries.json';
+import countryCodesData from '../../shared/data/countryCodes.json';
 import API_BASE from '../../shared/utils/apiBase';
 
 interface UserProfile {
@@ -50,6 +54,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showCountryModal, setShowCountryModal] = useState(false);
 
   const [form, setForm] = useState<UserProfile>({
     firstName: '',
@@ -217,6 +222,146 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleCountrySelect = (country: any) => {
+    // Find the country code from countryCodesData
+    const countryCodeData = countryCodesData.find(cc => cc.iso === country.code && cc.enabled === 'Y');
+    const countryCode = countryCodeData ? countryCodeData.code : '+1';
+
+    // Simple currency mapping
+    const currencyMap: { [key: string]: string } = {
+      'US': 'USD',
+      'GB': 'GBP',
+      'IN': 'INR',
+      'CA': 'CAD',
+      'AU': 'AUD',
+      'DE': 'EUR',
+      'FR': 'EUR',
+      'IT': 'EUR',
+      'ES': 'EUR',
+      'NL': 'EUR',
+      'BE': 'EUR',
+      'CH': 'CHF',
+      'AT': 'EUR',
+      'SE': 'SEK',
+      'NO': 'NOK',
+      'DK': 'DKK',
+      'FI': 'EUR',
+      'IE': 'EUR',
+      'PT': 'EUR',
+      'GR': 'EUR',
+      'PL': 'PLN',
+      'CZ': 'CZK',
+      'HU': 'HUF',
+      'SK': 'EUR',
+      'SI': 'EUR',
+      'HR': 'EUR',
+      'BA': 'BAM',
+      'RS': 'RSD',
+      'ME': 'EUR',
+      'AL': 'ALL',
+      'MK': 'MKD',
+      'BG': 'BGN',
+      'RO': 'RON',
+      'TR': 'TRY',
+      'RU': 'RUB',
+      'UA': 'UAH',
+      'BY': 'BYN',
+      'MD': 'MDL',
+      'GE': 'GEL',
+      'AM': 'AMD',
+      'AZ': 'AZN',
+      'KZ': 'KZT',
+      'UZ': 'UZS',
+      'TM': 'TMT',
+      'TJ': 'TJS',
+      'KG': 'KGS',
+      'CN': 'CNY',
+      'JP': 'JPY',
+      'KR': 'KRW',
+      'VN': 'VND',
+      'TH': 'THB',
+      'MY': 'MYR',
+      'SG': 'SGD',
+      'ID': 'IDR',
+      'PH': 'PHP',
+      'PK': 'PKR',
+      'BD': 'BDT',
+      'LK': 'LKR',
+      'NP': 'NPR',
+      'BT': 'BTN',
+      'MV': 'MVR',
+      'AF': 'AFN',
+      'IR': 'IRR',
+      'IQ': 'IQD',
+      'SA': 'SAR',
+      'AE': 'AED',
+      'QA': 'QAR',
+      'KW': 'KWD',
+      'BH': 'BHD',
+      'OM': 'OMR',
+      'YE': 'YER',
+      'JO': 'JOD',
+      'LB': 'LBP',
+      'SY': 'SYP',
+      'IL': 'ILS',
+      'PS': 'ILS',
+      'EG': 'EGP',
+      'LY': 'LYD',
+      'TN': 'TND',
+      'MA': 'MAD',
+      'ZA': 'ZAR',
+      'NG': 'NGN',
+      'KE': 'KES',
+      'GH': 'GHS',
+      'ET': 'ETB',
+      'UG': 'UGX',
+      'TZ': 'TZS',
+      'RW': 'RWF',
+      'BI': 'BIF',
+      'ZW': 'ZWL',
+      'ZM': 'ZMW',
+      'MW': 'MWK',
+      'MZ': 'MZN',
+      'BW': 'BWP',
+      'NA': 'NAD',
+      'AO': 'AOA',
+      'BR': 'BRL',
+      'MX': 'MXN',
+      'AR': 'ARS',
+      'CO': 'COP',
+      'CL': 'CLP',
+      'PE': 'PEN',
+      'VE': 'VES',
+      'EC': 'USD',
+      'BO': 'BOB',
+      'PY': 'PYG',
+      'UY': 'UYU',
+      'NZ': 'NZD',
+      'FJ': 'FJD',
+      'PG': 'PGK',
+      'SB': 'SBD',
+      'VU': 'VUV',
+      'WS': 'WST',
+      'TO': 'TOP',
+      'KI': 'AUD',
+      'TV': 'AUD',
+      'NR': 'AUD',
+      'MH': 'USD',
+      'FM': 'USD',
+      'PW': 'USD'
+    };
+
+    const currencyCode = currencyMap[country.code] || 'USD';
+
+    setForm(prev => ({
+      ...prev,
+      country: country.name,
+      countryCode: countryCode,
+      currencyCode: currencyCode
+    }));
+    setShowCountryModal(false);
+  };
+
   const handleLogout = async () => {
     Alert.alert(
       'Logout',
@@ -274,7 +419,7 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -363,12 +508,14 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.inputGroup, styles.halfWidth]}>
               <Text style={styles.label}>Country</Text>
-              <TextInput
+              <TouchableOpacity
                 style={styles.input}
-                placeholder="Country"
-                value={form.country}
-                onChangeText={(value) => setForm(prev => ({ ...prev, country: value }))}
-              />
+                onPress={() => setShowCountryModal(true)}
+              >
+                <Text style={form.country ? styles.inputText : styles.placeholderText}>
+                  {form.country || 'Select Country'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -601,6 +748,35 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showCountryModal}
+        animationType="slide"
+        onRequestClose={() => setShowCountryModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowCountryModal(false)}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Country</Text>
+            <View style={{ width: 50 }} />
+          </View>
+          <FlatList
+            data={countriesData.filter(country => country.enabled === 'Y')}
+            keyExtractor={(item) => item.code}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.countryItem}
+                onPress={() => handleCountrySelect(item)}
+              >
+                <Text style={styles.countryName}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+            style={styles.countryList}
+          />
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -611,7 +787,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   scrollContainer: {
-    flex: 1,
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   centerContent: {
     flex: 1,
@@ -704,6 +881,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#ffffff',
   },
+  inputText: {
+    fontSize: 16,
+    color: '#495057',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#6c757d',
+  },
   textArea: {
     height: 80,
     textAlignVertical: 'top',
@@ -791,5 +976,38 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#007bff',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#495057',
+  },
+  countryList: {
+    flex: 1,
+  },
+  countryItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8f9fa',
+  },
+  countryName: {
+    fontSize: 16,
+    color: '#495057',
   },
 });
